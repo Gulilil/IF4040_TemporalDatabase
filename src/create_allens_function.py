@@ -1,6 +1,15 @@
 import os
 from dotenv import load_dotenv
 import psycopg2
+from allens_queries import (
+    before_function,
+    meets_function,
+    overlaps_function,
+    starts_function,
+    during_function,
+    finishes_function,
+    equals_function,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,137 +30,50 @@ def execute_query(connection, query):
         cursor.execute(query)
         connection.commit()
 
-def create_allens_interval_functions(connection):
-    functions = {
-        "before": """
-        CREATE OR REPLACE FUNCTION before(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN end1 < start2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "meets": """
-        CREATE OR REPLACE FUNCTION meets(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN end1 = start2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "overlaps": """
-        CREATE OR REPLACE FUNCTION overlaps(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 < start2 AND end1 > start2 AND end1 < end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "starts": """
-        CREATE OR REPLACE FUNCTION starts(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 = start2 AND end1 < end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "during": """
-        CREATE OR REPLACE FUNCTION during(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 > start2 AND end1 < end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "finishes": """
-        CREATE OR REPLACE FUNCTION finishes(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN end1 = end2 AND start1 > start2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "equals": """
-        CREATE OR REPLACE FUNCTION equals(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 = start2 AND end1 = end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "after": """
-        CREATE OR REPLACE FUNCTION after(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 > end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "met_by": """
-        CREATE OR REPLACE FUNCTION met_by(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 = end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "overlapped_by": """
-        CREATE OR REPLACE FUNCTION overlapped_by(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start2 < start1 AND end2 > start1 AND end2 < end1;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "started_by": """
-        CREATE OR REPLACE FUNCTION started_by(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 = start2 AND end1 > end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "contains": """
-        CREATE OR REPLACE FUNCTION contains(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN start1 < start2 AND end1 > end2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """,
-
-        "finished_by": """
-        CREATE OR REPLACE FUNCTION finished_by(start1 TIMESTAMP, end1 TIMESTAMP, start2 TIMESTAMP, end2 TIMESTAMP)
-        RETURNS BOOLEAN AS $$
-        BEGIN
-            RETURN end1 = end2 AND start1 < start2;
-        END;
-        $$ LANGUAGE plpgsql;
-        """
-    }
-
-    for name, query in functions.items():
+def drop_previous_functions(connection):
+    functions_to_drop = [
+        "before",
+        "meets",
+        "overlaps",
+        "starts",
+        "during",
+        "finishes",
+        "equals",
+        "after",
+        "met_by",
+        "overlapped_by",
+        "started_by",
+        "contains",
+        "finished_by",
+    ]
+    for func in functions_to_drop:
+        query = f"DROP FUNCTION IF EXISTS {func}(TIMESTAMP, TIMESTAMP, TIMESTAMP, TIMESTAMP);"
         execute_query(connection, query)
-        print(f"Function '{name}' created successfully.")
+        print(f"Function `{func}` dropped (if it existed).")
 
-def main():
+def create_allens_functions():
     connection = get_connection()
     try:
-        create_allens_interval_functions(connection)
+
+        print("Creating Allen's interval functions...")
+        execute_query(connection, before_function)
+        print("Function `before` created.")
+        execute_query(connection, meets_function)
+        print("Function `meets` created.")
+        execute_query(connection, overlaps_function)
+        print("Function `overlaps` created.")
+        execute_query(connection, starts_function)
+        print("Function `starts` created.")
+        execute_query(connection, during_function)
+        print("Function `during` created.")
+        execute_query(connection, finishes_function)
+        print("Function `finishes` created.")
+        execute_query(connection, equals_function)
+        print("Function `equals` created.")
+        print("All functions created successfully.")
     finally:
         connection.close()
 
+# Main function
 if __name__ == "__main__":
-    main()
-
+    create_allens_functions()
