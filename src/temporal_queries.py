@@ -37,7 +37,7 @@ def temporal_selection(table, predicate):
 
 # Temporal Union (restricted to s_id and p_id)
 def temporal_union(table1, table2):
-    query = f"SELECT s_id, p_id FROM {table1} UNION SELECT s_id, p_id FROM {table2}"
+    query = f"SELECT s_id, p_id, vt_start, vt_end FROM {table1} UNION SELECT s_id, p_id, vt_start, vt_end FROM {table2}"
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(query)
@@ -47,7 +47,7 @@ def temporal_union(table1, table2):
 
 # Temporal Difference (restricted to s_id and p_id)
 def temporal_difference(table1, table2):
-    query = f"SELECT s_id, p_id FROM {table1} EXCEPT SELECT s_id, p_id FROM {table2}"
+    query = f"SELECT s_id, p_id, vt_start, vt_end FROM {table1} EXCEPT SELECT s_id, p_id, vt_start, vt_end FROM {table2}"
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(query)
@@ -56,12 +56,12 @@ def temporal_difference(table1, table2):
     return result
 
 # Temporal Join
-def temporal_join(table1, table2, join_condition):
+def temporal_join(table1, table2):
     query = f"""
-        SELECT * 
+        SELECT DISTINCT * 
         FROM {table1} AS t1
         JOIN {table2} AS t2 
-        ON {join_condition}
+        ON t1.s_id = t2.s_id AND t1.p_id = t2.p_id
         AND t1.vt_start < t2.vt_end AND t1.vt_end > t2.vt_start
     """
     with get_connection() as conn:
@@ -103,7 +103,7 @@ def main():
         temporal_difference("inventory_details", "inventory_sales")
 
         print("\nTemporal Join:")
-        temporal_join("inventory_details", "inventory_sales", "t1.s_id = t2.s_id AND t1.p_id = t2.p_id")
+        temporal_join("inventory_details", "inventory_sales")
 
         print("\nTimeslice:")
         timeslice("inventory_details", "2025-01-01 00:00:00")
