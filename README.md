@@ -8,7 +8,7 @@ Temporal Database Implementation
 * [References](#references)
 
 
-## Deskripsi Singkat 
+## Program Description
 This program contains the implementation of temporal database using PostgreSQL. The dataset used in this project is inventory management. The temporal reprsentation done in this program is Snodgrass Representation
 
 ## Data Details
